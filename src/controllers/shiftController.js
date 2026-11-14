@@ -362,6 +362,7 @@ const shiftController = {
       console.log(
         `📝 [SHIFT] created id=${data._id} status=${status} brand=${doc.brand} pay=₹${pay} poster=${phone}`
       );
+<<<<<<< HEAD
 
       if (status === 'PENDING_REVIEW') {
         try {
@@ -377,6 +378,8 @@ const shiftController = {
         } catch (e) { /* optional */ }
       }
 
+=======
+>>>>>>> c8d2aa10e9add3c2638909fc3b4b3559ff2414a5
       const msg =
         doc.status === 'DRAFT'
           ? 'Draft saved'
@@ -663,6 +666,7 @@ const shiftController = {
 
       console.log(`💬 [BOON FEEDBACK] id=${shift._id} by=${reviewer}`);
       const data = shift.toObject ? shift.toObject() : shift;
+<<<<<<< HEAD
 
       try {
         const io = req.app.get('socketio');
@@ -677,6 +681,8 @@ const shiftController = {
         }
       } catch (e) { /* optional */ }
 
+=======
+>>>>>>> c8d2aa10e9add3c2638909fc3b4b3559ff2414a5
       return res.json({
         success: true,
         message: 'Feedback sent to poster',
@@ -752,6 +758,7 @@ const shiftController = {
       }
       await shift.save();
 
+<<<<<<< HEAD
       if (resubmit) {
         try {
           const io = req.app.get('socketio');
@@ -767,6 +774,8 @@ const shiftController = {
         } catch (e) { /* optional */ }
       }
 
+=======
+>>>>>>> c8d2aa10e9add3c2638909fc3b4b3559ff2414a5
       const data = shift.toObject ? shift.toObject() : shift;
       return res.json({
         success: true,

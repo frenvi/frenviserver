@@ -275,6 +275,7 @@ const assessmentController = {
 
       const slotKey = `${date}:${slotId}`;
 
+<<<<<<< HEAD
       // One active booking per user — reschedule instead of creating another
       try {
         const userActive = await Assessment.findOne({
@@ -304,6 +305,9 @@ const assessmentController = {
       }
 
       // Check slot conflict
+=======
+      // Check conflict
+>>>>>>> c8d2aa10e9add3c2638909fc3b4b3559ff2414a5
       try {
         const existing = await Assessment.findOne({
           scheduledDate: date,
@@ -422,6 +426,7 @@ const assessmentController = {
         }
       }
 
+<<<<<<< HEAD
       // Notify admin portal of updated slot
       const io = req.app.get('socketio');
       if (io && booking) {
@@ -429,6 +434,8 @@ const assessmentController = {
         console.log(`📡 [SOCKET] Dispatched booking_rescheduled for ${bookingId}`);
       }
 
+=======
+>>>>>>> c8d2aa10e9add3c2638909fc3b4b3559ff2414a5
       return res.json({ success: true, message: 'Booking rescheduled successfully', data: booking });
     } catch (err) {
       console.error('Reschedule error:', err);
