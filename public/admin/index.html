@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FRENVI — Assessor Command Portal & Live Scoring</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+  <!-- Agora RTC Web SDK -->
+  <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.20.0.js"></script>
+  <!-- Socket.io Client -->
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <div class="admin-app">
+    <!-- Top Global Header -->
+    <header class="admin-header">
+      <div class="brand-col">
+        <div class="brand-logo">
+          <span class="logo-dot"></span>
+          <span class="brand-name">FRENVI</span>
+          <span class="badge-role">ASSESSOR PORTAL</span>
+        </div>
+        <p class="brand-sub">Real-Time Worker Competency Evaluation & Skill Certification Desk</p>
+      </div>
+
+      <div class="header-metrics">
+        <div class="metric-pill">
+          <span class="metric-icon">⚡</span>
+          <span class="metric-label">Instant Queue:</span>
+          <span class="metric-val" id="metric-instant-count">0</span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-icon">📅</span>
+          <span class="metric-label">Scheduled:</span>
+          <span class="metric-val" id="metric-scheduled-count">0</span>
+        </div>
+        <div class="metric-pill">
+          <span class="metric-icon">⭐</span>
+          <span class="metric-label">Certified:</span>
+          <span class="metric-val text-green" id="metric-certified-count">94%</span>
+        </div>
+      </div>
+
+      <div class="assessor-profile">
+        <div class="assessor-avatar">👩‍💼</div>
+        <div class="assessor-info">
+          <div class="assessor-name" id="assessor-name-display">Priya Sharma</div>
+          <div class="assessor-status-wrapper">
+            <span class="live-dot online" id="status-indicator"></span>
+            <select id="assessor-status-toggle" class="status-select">
+              <option value="available" selected>🟢 Available for Calls</option>
+              <option value="in_call">🟡 In Assessment Session</option>
+              <option value="offline">⚪ Break / Offline</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Bar -->
+    <nav class="admin-nav">
+      <button class="nav-tab active" data-tab="queue-tab">
+        <span class="tab-icon">⚡</span>
+        <span>Instant Assessment Queue</span>
+        <span class="tab-badge" id="queue-badge">0</span>
+      </button>
+      <button class="nav-tab" data-tab="scheduled-tab">
+        <span class="tab-icon">📅</span>
+        <span>Scheduled Appointments</span>
+        <span class="tab-badge" id="sched-badge">0</span>
+      </button>
+      <button class="nav-tab" data-tab="room-tab" id="room-tab-btn">
+        <span class="tab-icon">🎥</span>
+        <span>Live Assessment Room</span>
+        <span class="live-tag pulse" id="room-live-tag" style="display: none;">LIVE</span>
+      </button>
+      <button class="nav-tab" data-tab="history-tab">
+        <span class="tab-icon">📜</span>
+        <span>Evaluation Log & Passed Workers</span>
+      </button>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="admin-main">
+
+      <!-- 1. Instant Assessment Queue Tab -->
+      <section class="tab-panel active" id="queue-tab">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Active Candidate Waiting Queue</h2>
+            <p class="panel-subtitle">Workers requesting immediate on-demand video verification. Join call to begin.</p>
+          </div>
+          <button class="btn btn-outline" id="refresh-queue-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Refresh Queue
+          </button>
+        </div>
+
+        <div class="queue-grid" id="instant-queue-list">
+          <!-- Populated by JavaScript -->
+          <div class="empty-state">
+            <div class="empty-icon">⚡</div>
+            <h3>Waiting for incoming instant assessments...</h3>
+            <p>When a worker selects "Instant Assessment" in the app, their profile and video room will appear here in real-time.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Scheduled Bookings Tab -->
+      <section class="tab-panel" id="scheduled-tab">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Scheduled Video Appointments</h2>
+            <p class="panel-subtitle">Upcoming 15-minute scheduled competency assessments with calendar sync.</p>
+          </div>
+          <div class="filter-group">
+            <button class="filter-btn active" data-filter="all">All Dates</button>
+            <button class="filter-btn" data-filter="today">Today</button>
+            <button class="filter-btn" data-filter="tomorrow">Tomorrow</button>
+          </div>
+        </div>
+
+        <div class="scheduled-table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Candidate</th>
+                <th>Target Designation</th>
+                <th>Categories</th>
+                <th>Language</th>
+                <th>Scheduled Date & Time</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="scheduled-table-body">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 3. Live Assessment & Scoring Room Tab -->
+      <section class="tab-panel" id="room-tab">
+        <div class="room-layout">
+          <!-- Left: Video Feeds & Controls -->
+          <div class="video-section">
+            <div class="video-container">
+              <!-- Remote Worker Video Feed (Main) -->
+              <div class="remote-player-wrapper" id="remote-player-wrapper">
+                <div id="remote-video" class="remote-video"></div>
+                <div class="video-placeholder" id="remote-placeholder">
+                  <div class="pulse-ring"></div>
+                  <div class="placeholder-avatar">👨‍💼</div>
+                  <p class="placeholder-name" id="room-candidate-name">Candidate Video Feed</p>
+                  <span class="placeholder-status" id="remote-status-text">Connecting to Agora video stream...</span>
+                </div>
+
+                <!-- Call Status Overlay -->
+                <div class="call-overlay-header">
+                  <div class="room-id-tag">
+                    <span class="room-dot"></span>
+                    <span id="active-channel-name">frenvi_assessment_room</span>
+                  </div>
+                  <div class="call-timer-box" id="call-timer">15:00</div>
+                </div>
+              </div>
+
+              <!-- Local Assessor PIP (Corner) -->
+              <div class="local-pip-wrapper">
+                <div id="local-video" class="local-video"></div>
+                <div class="pip-label">You (Assessor)</div>
+              </div>
+            </div>
+
+            <!-- Call Control Bar -->
+            <div class="call-controls">
+              <button class="control-btn" id="toggle-mic-btn" title="Mute/Unmute Mic">
+                <span class="control-icon" id="mic-icon">🎙️</span>
+                <span class="control-text">Mute</span>
+              </button>
+              <button class="control-btn" id="toggle-cam-btn" title="Turn Camera On/Off">
+                <span class="control-icon" id="cam-icon">📹</span>
+                <span class="control-text">Stop Video</span>
+              </button>
+              <button class="control-btn end-call" id="leave-call-btn" title="Leave Session">
+                <span class="control-icon">📵</span>
+                <span class="control-text">End Call</span>
+              </button>
+            </div>
+
+            <!-- Candidate Quick Info Card -->
+            <div class="candidate-quick-card">
+              <div class="candidate-header">
+                <div class="candidate-avatar" id="cand-avatar">👷</div>
+                <div>
+                  <h4 class="cand-name" id="cand-name">Choula</h4>
+                  <p class="cand-phone" id="cand-phone">+91 98765 43210</p>
+                </div>
+                <span class="tag-role" id="cand-designation">Food & Dining Crew</span>
+              </div>
+              <div class="cand-tags" id="cand-categories">
+                <span class="pill">Kitchen Prep</span>
+                <span class="pill">Takeaway Packing</span>
+                <span class="pill">Language: English</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Interactive Evaluation & Scoring Rubric Panel -->
+          <div class="scoring-section">
+            <div class="scoring-card">
+              <div class="scoring-header">
+                <div>
+                  <h3 class="scoring-title">Candidate Evaluation Rubric</h3>
+                  <p class="scoring-sub">Mark points across standard 4 hospitality & retail criteria (Total: 100)</p>
+                </div>
+                <div class="score-badge-box">
+                  <div class="score-display">
+                    <span class="score-num" id="live-total-score">94</span>
+                    <span class="score-denom">/100</span>
+                  </div>
+                  <div class="grade-pill grade-a" id="live-grade-pill">Grade A</div>
+                </div>
+              </div>
+
+              <!-- Rubric Items Form -->
+              <form id="evaluation-form" class="rubric-form">
+                <!-- Criterion 1: Communication -->
+                <div class="rubric-item">
+                  <div class="rubric-title-row">
+                    <div class="rubric-info">
+                      <span class="rubric-icon">🗣️</span>
+                      <div>
+                        <strong>1. Verbal Communication & Greeting</strong>
+                        <p>Polite tone, active listening, clear spoken language, customer greeting protocol.</p>
+                      </div>
+                    </div>
+                    <span class="score-input-val" id="score-comm-val">24 / 25</span>
+                  </div>
+                  <input type="range" min="0" max="25" value="24" class="slider" id="slider-communication" oninput="updateLiveScore()">
+                </div>
+
+                <!-- Criterion 2: Situational Handling -->
+                <div class="rubric-item">
+                  <div class="rubric-title-row">
+                    <div class="rubric-info">
+                      <span class="rubric-icon">🧠</span>
+                      <div>
+                        <strong>2. Situational & Scenario Handling</strong>
+                        <p>Composure under peak hour rush, handling missing orders or angry customers.</p>
+                      </div>
+                    </div>
+                    <span class="score-input-val" id="score-scenario-val">23 / 25</span>
+                  </div>
+                  <input type="range" min="0" max="25" value="23" class="slider" id="slider-scenario" oninput="updateLiveScore()">
+                </div>
+
+                <!-- Criterion 3: Hygiene & Grooming -->
+                <div class="rubric-item">
+                  <div class="rubric-title-row">
+                    <div class="rubric-info">
+                      <span class="rubric-icon">🧼</span>
+                      <div>
+                        <strong>3. Hygiene, Grooming & Workplace Safety</strong>
+                        <p>Clean attire, awareness of food sanitization protocols, safety precautions.</p>
+                      </div>
+                    </div>
+                    <span class="score-input-val" id="score-hygiene-val">24 / 25</span>
+                  </div>
+                  <input type="range" min="0" max="25" value="24" class="slider" id="slider-hygiene" oninput="updateLiveScore()">
+                </div>
+
+                <!-- Criterion 4: Reliability & Discipline -->
+                <div class="rubric-item">
+                  <div class="rubric-title-row">
+                    <div class="rubric-info">
+                      <span class="rubric-icon">⏰</span>
+                      <div>
+                        <strong>4. Reliability, Punctuality & Discipline</strong>
+                        <p>Shift reporting commitment, readiness for scheduled slots, professional attitude.</p>
+                      </div>
+                    </div>
+                    <span class="score-input-val" id="score-reliability-val">23 / 25</span>
+                  </div>
+                  <input type="range" min="0" max="25" value="23" class="slider" id="slider-reliability" oninput="updateLiveScore()">
+                </div>
+
+                <!-- Skill Badge & Grade Result Preview -->
+                <div class="badge-preview-box">
+                  <div class="badge-icon">🎖️</div>
+                  <div>
+                    <div class="badge-tag">AWARDED CERTIFICATION BADGE</div>
+                    <div class="badge-name" id="badge-name-display">Certified Senior Dining & Retail Specialist</div>
+                  </div>
+                </div>
+
+                <!-- Assessor Notes & Remarks -->
+                <div class="form-group">
+                  <label for="eval-feedback">Assessor Qualitative Remarks & Feedback</label>
+                  <textarea id="eval-feedback" rows="3" class="feedback-textarea">Candidate demonstrated exceptional customer greeting composure, fluent responses to rush scenarios, and meticulous hygiene protocol knowledge. Ready for high-paying partner shifts.</textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="form-actions">
+                  <button type="button" class="btn btn-secondary" id="save-draft-btn">Save Draft</button>
+                  <button type="submit" class="btn btn-primary btn-submit" id="submit-eval-btn">
+                    <span class="btn-icon">✅</span>
+                    <span>Submit Evaluation & Verify Candidate</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. Evaluation History Tab -->
+      <section class="tab-panel" id="history-tab">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">Completed Evaluations & Certified Workers</h2>
+            <p class="panel-subtitle">Archive of workers who completed video assessment with their awarded scores and badges.</p>
+          </div>
+          <button class="btn btn-outline" id="refresh-history-btn">Refresh Records</button>
+        </div>
+
+        <div class="history-grid" id="history-cards-container">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Notification Toast -->
+  <div class="admin-toast" id="admin-toast"></div>
+
+  <!-- App Script -->
+  <script src="js/admin.js"></script>
+</body>
+</html>
