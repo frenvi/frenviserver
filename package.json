@@ -1,0 +1,33 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "upload:logos": "node scripts/upload-shift-assets.js",
+    "upload:catalog": "node scripts/upload-catalog-images.js",
+    "rewrite:catalog-urls": "node scripts/rewrite-catalog-cloudinary-urls.js",
+    "seed": "node scripts/seed-all.js",
+    "test": "node scripts/test-kyc-digilocker.js",
+    "test:kyc": "node scripts/test-kyc-digilocker.js",
+    "test:kyc:otp-legacy": "node scripts/test-kyc-verify-retry.js",
+    "test:kyc:live": "node scripts/test-kyc-cashfree.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "agora-access-token": "^2.0.4",
+    "agora-token": "^2.0.7",
+    "cloudinary": "^2.11.0",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.11.4",
+    "socket.io": "^4.8.4"
+  }
+}
